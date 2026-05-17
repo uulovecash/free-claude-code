@@ -159,8 +159,11 @@ def _validate_deepseek_native_request_dict(data: dict[str, Any]) -> None:
         if isinstance(c, list):
             _walk_block_list_for_unsupported(c, where=f"messages[{i}].content")
         if isinstance(c, str) and "<think>" in c:
-            # Unusual, but block encoded redacted content — treat as unsafe for DeepSeek.
-            pass
+            raise InvalidRequestError(
+                f"DeepSeek native does not support encoded redacted thinking content "
+                f"(<think> tags detected in messages[{i}].content). "
+                "Remove redacted thinking blocks from the message history before sending."
+            )
 
     system = data.get("system")
     if isinstance(system, list):

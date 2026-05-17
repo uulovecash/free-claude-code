@@ -1074,6 +1074,31 @@ def test_warns_when_stripping_attachment_blocks(deepseek_provider, caplog):
     assert any("stripped unsupported attachment blocks" in r.message for r in warnings)
 
 
+def test_preflight_rejects_encoded_think_tags_in_string_content():
+    """<think> tags in string message content indicate encoded redacted thinking and must be rejected."""
+    request = MessagesRequest.model_validate(
+        {
+            "model": "m",
+            "messages": [
+                {
+                    "role": "assistant",
+                    "content": "<think>some encoded thinking</think>some response",
+                }
+            ],
+        }
+    )
+    provider = DeepSeekProvider(
+        ProviderConfig(
+            api_key="k",
+            base_url=DEEPSEEK_ANTHROPIC_DEFAULT_BASE,
+            rate_limit=1,
+            rate_window=1,
+        )
+    )
+    with pytest.raises(InvalidRequestError, match="<think>"):
+        provider.preflight_stream(request)
+
+
 def test_no_warning_when_no_attachments(deepseek_provider, caplog):
     """No warning is emitted on plain text-only requests."""
     request = MessagesRequest.model_validate(
